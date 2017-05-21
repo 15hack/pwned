@@ -9,10 +9,8 @@ import time
 import sqlite3
 import os
 import re
-from requests.packages.urllib3.exceptions import InsecureRequestWarning, InsecurePlatformWarning
 
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-requests.packages.urllib3.disable_warnings(InsecurePlatformWarning)
+requests.packages.urllib3.disable_warnings()
 
 
 if len(sys.argv) != 2:
