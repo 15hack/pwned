@@ -13,7 +13,7 @@ import re
 requests.packages.urllib3.disable_warnings()
 
 
-if len(sys.argv) != 2:
+if len(sys.argv) <2:
     raise ValueError("Please specify exactly one vCard or txt file.")
 
 tag = re.compile(r"</?a\b[^>]*>")
@@ -42,6 +42,44 @@ def get_info(mail):
 
 
 fname = sys.argv[1]
+resume = len(sys.argv)>2 and sys.argv[2]=="--resume"
+
+path = os.path.dirname(os.path.abspath(__file__))
+
+db_path = path + "/pwned.db"
+con = sqlite3.connect(db_path)
+
+if not resume:
+    with open(path + '/schema.sql', 'r') as schema:
+        c = con.cursor()
+        qry = schema.read()
+        c.executescript(qry)
+        con.commit()
+        c.close()
+
+    for r in get_json(breaches):
+        d = tag.sub("", r["Description"]).strip()
+        info = ", ".join(r["DataClasses"])
+        c = con.cursor()
+        c.execute("insert into ataques (id, titulo, dominio, descripcion, info) values (?, ?, ?, ?, ?)", (r["Name"], r["Title"], r["Domain"], d, info))
+        c.close()
+        con.commit()
+
+id_persona = 0
+max_correo = None
+
+if resume:
+    c = con.cursor()
+    c.execute('select max(id) from personas')
+    id_persona = c.fetchone()[0]
+    c.execute('select max(correo) from tocados')
+    max_correo = c.fetchone()[0]
+    print "Continumos a partir de "+max_correo
+    c.close()
+
+con.close()
+con = None
+
 stream = io.open(fname,"r", encoding="utf-8")
 
 if fname.endswith(".vcf"):
@@ -50,7 +88,7 @@ else:
     vcards = []
     for l in stream.readlines():
         l = l.strip()
-        if len(l)>0 and "@" in l:
+        if len(l)>0 and "@" in l and (not resume or l>max_correo):
             m = nml.match(l)
             j = vobject.vCard()
             j.add('EMAIL')
@@ -61,31 +99,6 @@ else:
             else:
                 j.email.value = l
             vcards.append(j)
-            
-
-path = os.path.dirname(os.path.abspath(__file__))
-
-db_path = path + "/pwned.db"
-con = sqlite3.connect(db_path)
-with open(path + '/schema.sql', 'r') as schema:
-    c = con.cursor()
-    qry = schema.read()
-    c.executescript(qry)
-    con.commit()
-    c.close()
-
-for r in get_json(breaches):
-    d = tag.sub("", r["Description"]).strip()
-    info = ", ".join(r["DataClasses"])
-    c = con.cursor()
-    c.execute(
-        "insert into ataques (id, titulo, dominio, descripcion, info) values (?, ?, ?, ?, ?)", (r["Name"], r["Title"], r["Domain"], d, info))
-    c.close()
-    con.commit()
-con.close()
-con = None
-
-id_persona = 0
 
 def insert_persona(nombre):
     global id_persona
