@@ -73,6 +73,5 @@ atacados = get_atacados()
 
 for a in atacados:
 	send(a)
-	sys.exit(0)
 
 smtp.quit()
