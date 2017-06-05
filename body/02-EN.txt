@@ -1,0 +1,14 @@
+[EN] - English
+
+Hello
+
+This mail is because fo your email address %s appears in the database https://haveibeenpwned.com/
+This web is a service to check if an email address has been compromised in a data breach.
+
+For example, if you have registered in the social network X with your email %s and that social network has suffered a data breach, your account is compromised not only in that website but in all those in which you have registered with the same email and the same password.
+
+In particular, your email appears in the following attacks: %s.
+
+Therefore, as you are a user with this email address in one of the services of 15hack, we ask that you review in https://haveibeenpwned.com/ the seriousness of your exposure and, if you think it necessary, change the password both in the services that are listed on haveibeenpwned.com like the ones you're using at 15hack.
+
+Thank you very much, and we hope this notice is helpful.

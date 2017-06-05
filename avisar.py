@@ -8,7 +8,8 @@ from email.MIMEText import MIMEText
 from email.Header import Header
 from email.Utils import parseaddr, formataddr
 import getpass
-
+import glob
+import codecs
 
 config = None
 with file("smtp.yaml", 'r') as f:
@@ -28,7 +29,7 @@ def get_ataques(to):
 
 def get_atacados():
         c = con.cursor()
-        c.execute("select distinct correo from tocados")
+        c.execute("select id from correos where avisado = 0")
         rs = c.fetchall()
         c.close()
         out = []
@@ -36,21 +37,28 @@ def get_atacados():
                 out.append(r[0])
         return out
 
-txt=u'''Hola
+def set_avisado(correo):
+        c = con.cursor()
+        c.execute("update correos set avisado = 1 where id = ?", (correo,))
+        c.close()
+	con.commit()
 
-Recibes este correo porque tu dirección de email %s aparece en la base de datos https://haveibeenpwned.com/
-Esta web es un servicio para comprobar si una dirección de correo ha sido comprometida en algún ataque informático.
+bodies=[]
+for txt in sorted(glob.glob("body/*.txt")):
+	with codecs.open(txt, "r", "utf-8") as f:
+		bodies.append(f.read().strip())
 
-Por ejemplo, si te has registrado en la red social X con tu correo %s y esa red social ha sufrido un ataque en el que se ha filtrado los usuarios de esa web, tu cuenta esta comprometida no solo en ese sitio web si no en todos aquellos en los que te hayas registrado con el mismo correo y la misma contraseña.
 
-En concreto, tu correo aparece en los siguientes ataques: %s.
+def get_body(to):
+        uto=unicode(to)
+        ataques = get_ataques(to)
+	body = u""
+	for b in bodies:
+		b = b % (uto, uto, ataques)
+		body = body + b + u"\n\n\n"
+	return body.strip()
 
-Por ello, como eres usuario con esta dirección de correo en alguno de los servicios de 15hack, te pedimos que revises en https://haveibeenpwned.com/ la gravedad de tu exposición y si lo estimas necesario cambies la contraseña tanto en los servicios que aparezcan en haveibeenpwned.com como en los que estés usando en 15hack.
-
-Muchas gracias, y esperamos que este aviso te sea útil.'''
-
-header_charset = 'UTF-8'
-body_charset = 'UTF-8'
+charset = 'UTF-8'
 
 password = getpass.getpass('Password: ')
 
@@ -59,13 +67,12 @@ smtp.login(config['login'], password)
 
 
 def send(to):
-	uto=unicode(to)
-	body = txt % (uto, uto, get_ataques(to))
+	body = get_body(to)
 
-	msg = MIMEText(body, 'plain', body_charset)
+	msg = MIMEText(body, 'plain', charset)
 	msg['From'] = config['from']
 	msg['To'] = to
-	msg['Subject'] = Header(u'Tu dirección de correo puede estar comprometida, por favor, revisla.', header_charset)
+	msg['Subject'] = Header(u'Tu dirección de correo puede estar comprometida, por favor, revisla.', charset)
 
 	smtp.sendmail(config['from'], to, msg.as_string())
 
@@ -73,5 +80,6 @@ atacados = get_atacados()
 
 for a in atacados:
 	send(a)
+	set_avisado(a)
 
 smtp.quit()
