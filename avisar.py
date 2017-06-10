@@ -10,6 +10,8 @@ from email.Utils import parseaddr, formataddr
 import getpass
 import glob
 import codecs
+from smtplib import SMTPRecipientsRefused, SMTPDataError
+import time
 
 config = None
 with file("smtp.yaml", 'r') as f:
@@ -79,7 +81,19 @@ def send(to):
 atacados = get_atacados()
 
 for a in atacados:
-	send(a)
-	set_avisado(a)
-
+	print a,
+	try:
+		send(a)
+		set_avisado(a)
+		print "OK"
+	except SMTPRecipientsRefused as e:
+		print str(e)
+	except SMTPDataError as e:
+		if e.smtp_code == 450:
+			atacados.append(a)
+			print "SLEEP"
+			time.sleep(300)
+		else:
+			print str(e)
+		
 smtp.quit()
