@@ -10,7 +10,7 @@ from email.Utils import parseaddr, formataddr
 import getpass
 import glob
 import codecs
-from smtplib import SMTPRecipientsRefused, SMTPDataError
+from smtplib import SMTPRecipientsRefused, SMTPDataError, SMTPServerDisconnected
 import time
 
 config = None
@@ -39,9 +39,9 @@ def get_atacados():
                 out.append(r[0])
         return out
 
-def set_avisado(correo):
+def set_cod(correo, cod=1):
         c = con.cursor()
-        c.execute("update correos set avisado = 1 where id = ?", (correo,))
+        c.execute("update correos set avisado = ? where id = ?", (cod, correo))
         c.close()
 	con.commit()
 
@@ -84,16 +84,25 @@ for a in atacados:
 	print a,
 	try:
 		send(a)
-		set_avisado(a)
+		set_cod(a)
 		print "OK"
 	except SMTPRecipientsRefused as e:
+		set_cod(a,2)
 		print str(e)
 	except SMTPDataError as e:
 		if e.smtp_code == 450:
 			atacados.append(a)
+			print e.smtp_error
 			print "SLEEP"
-			time.sleep(300)
+			smtp.quit()
+			time.sleep(600)
+			smtp = SMTP_SSL(config['server'])
+			smtp.login(config['login'], password)
 		else:
 			print str(e)
+	except SMTPServerDisconnected as e:
+		atacados.append(a)
+		smtp = SMTP_SSL(config['server'])
+		smtp.login(config['login'], password)		
 		
 smtp.quit()

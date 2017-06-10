@@ -11,7 +11,7 @@ CREATE TABLE personas (
 CREATE TABLE correos (
     id TEXT,
     persona INTEGER,
-    avisado boolean not null default 0,
+    avisado INTEGER not null default 0,
     PRIMARY KEY (id)
     FOREIGN KEY(persona) REFERENCES personas(id)
 );
